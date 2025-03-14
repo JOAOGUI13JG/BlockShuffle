@@ -145,6 +145,6 @@ def play_game():
 # Inicialização do tabuleiro e início do jogo
 score = 0  # Inicializando o contador de pontos
 moves_left = 5  # Jogador pode fazer até 5 movimentos
-print("Bem-vindo ao jogo de match-3 local! 🎮")
+print("Bem-vindo ao BlockShuffle")
 board = generate_board()  # Gerar um tabuleiro válido
 play_game()
