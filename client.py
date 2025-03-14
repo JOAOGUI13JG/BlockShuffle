@@ -34,12 +34,8 @@ async def receive_game_state():
                     print("O jogo terminou!")
                     break
 
-                # Pedir ao jogador para fazer um movimento (se for a vez dele)
-                if game_state['turn'] % 2 + 1 == 1:  # Jogador 1
-                    move = input("Jogador 1, digite seu movimento (ex: A1 B5): ")
-                else:  # Jogador 2
-                    move = input("Jogador 2, digite seu movimento (ex: A1 B5): ")
-
+                # Pedir ao jogador para fazer um movimento
+                move = input("Digite seu movimento (ex: A1 B5): ")
                 print(f"Movimento enviado: {move}")  # Log do movimento enviado
                 await websocket.send(pickle.dumps(move))  # Envia o movimento para o servidor
 
