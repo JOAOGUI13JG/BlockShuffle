@@ -20,7 +20,7 @@ async def receive_game_state():
             try:
                 # Receber o estado do jogo
                 game_state = pickle.loads(await websocket.recv())
-                print("Estado do jogo recebido:")  # Log de recebimento
+                print(f"Estado do jogo recebido: {game_state}")  # Log de recebimento
 
                 # Mostrar o estado atual do jogo (tabuleiro, pontuação, etc.)
                 print("Tabuleiro:")
