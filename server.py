@@ -1,13 +1,14 @@
 import asyncio
 import websockets
 import pickle
-from board import generate_board, process_player_move, print_board
+from board import generate_board, process_player_move
 
 # Dicionário para armazenar o estado do jogo de cada cliente
 game_states = {}
 
 # Função para enviar o estado do jogo para um cliente específico
 async def send_game_state(websocket, game_state):
+    print(f"Enviando estado do jogo para o cliente: {game_state}")
     try:
         await websocket.send(pickle.dumps(game_state))
     except websockets.exceptions.ConnectionClosedError:
@@ -25,6 +26,7 @@ async def process_move(move, websocket):
             "turn": 0,
             "moves_left": 5
         }
+        print(f"Novo tabuleiro gerado para o cliente: {game_states[websocket]['board']}")
 
     game_state = game_states[websocket]
 
@@ -50,7 +52,7 @@ async def handler(websocket):
     try:
         while True:
             # Recebe a jogada do cliente
-            move = await websocket.recv()
+            move = await websocket.recv()  
             move = pickle.loads(move)
 
             # Processa a jogada e envia o estado atualizado
