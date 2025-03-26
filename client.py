@@ -3,11 +3,11 @@ import websockets
 import pickle
 from colorama import Fore, init
 
-# Initialize colorama for colored output
+# corzinha
 init(autoreset=True)
 
 def is_valid_move(move: str) -> bool:
-    """Validates move format strictly"""
+    """validar a formatação do movimento"""
     parts = move.split()
     if len(parts) != 2:
         return False
@@ -23,7 +23,7 @@ def is_valid_move(move: str) -> bool:
     return True
 
 def print_board(board):
-    """Prints the game board with colored pieces"""
+    """Peças coloridas"""
     print("\n  1 2 3 4 5 6")
     letters = ['A', 'B', 'C', 'D', 'E', 'F']
     colors = {
@@ -41,7 +41,7 @@ async def play_game():
     async with websockets.connect("ws://localhost:8765") as websocket:
         print(Fore.CYAN + "Conectando ao servidor..." + Fore.RESET)
         
-        # Initial connection and waiting phase
+        # conexão inicial e fase de waiting
         init_data = pickle.loads(await websocket.recv())
         player_id = init_data["player_id"]
         max_moves = init_data["max_moves"]
@@ -66,12 +66,12 @@ async def play_game():
         # Main game loop
         while True:
             try:
-                # Skip input if player has no moves left
+                # pula input de movimentos se o jogador não tem mais nenhum movimento
                 if moves_left <= 0:
                     await asyncio.sleep(0.5)  # Small delay to prevent busy waiting
                     continue
                     
-                # Get valid move input
+                # Get input de movimento válido
                 while True:
                     move = input("\nDigite seu movimento (ex: A1 B2) ou 'sair': ").strip()
                     if move.lower() == 'sair':
@@ -87,13 +87,13 @@ async def play_game():
                     
                     print(Fore.RED + "Formato inválido! Use ex: A1 B2 (letras A-F, números 1-6)" + Fore.RESET)
 
-                # Send move
+                # Manda movimento
                 await websocket.send(pickle.dumps({
                     "type": "move",
                     "move": formatted_move
                 }))
 
-                # Process server response
+                # Processa resposta do sv
                 data = pickle.loads(await websocket.recv())
                 
                 if data["type"] == "board_update":
