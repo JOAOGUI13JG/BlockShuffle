@@ -1,50 +1,140 @@
 import asyncio
 import websockets
 import pickle
+from colorama import Fore, init
 
-# Função para imprimir o tabuleiro
+# Initialize colorama for colored output
+init(autoreset=True)
+
+def is_valid_move(move: str) -> bool:
+    """Validates move format strictly"""
+    parts = move.split()
+    if len(parts) != 2:
+        return False
+    
+    for part in parts:
+        if len(part) != 2:
+            return False
+        if part[0].upper() not in 'ABCDEF':
+            return False
+        if not part[1].isdigit() or int(part[1]) not in range(1, 7):
+            return False
+    
+    return True
+
 def print_board(board):
+    """Prints the game board with colored pieces"""
+    print("\n  1 2 3 4 5 6")
     letters = ['A', 'B', 'C', 'D', 'E', 'F']
-    print("  1 2 3 4 5 6")
+    colors = {
+        'O': Fore.RED,
+        'X': Fore.GREEN,
+        'Y': Fore.YELLOW,
+        'Z': Fore.BLUE
+    }
+    
     for i, row in enumerate(board):
-        print(f"{letters[i]} {' '.join(row)}")
-    print()
+        colored_row = [colors.get(cell, Fore.WHITE) + cell for cell in row]
+        print(f"{letters[i]} {' '.join(colored_row)}")
 
-# Função para receber e exibir o estado do jogo
-async def receive_game_state():
-    uri = "ws://localhost:8765"  # Substitua pelo IP do servidor
-    print("Conectando ao servidor...")  # Log de conexão
-    async with websockets.connect(uri) as websocket:
-        print("Conectado ao servidor!")  # Log de conexão bem-sucedida
+async def play_game():
+    async with websockets.connect("ws://localhost:8765") as websocket:
+        print(Fore.CYAN + "Conectando ao servidor..." + Fore.RESET)
+        
+        # Initial connection and waiting phase
+        init_data = pickle.loads(await websocket.recv())
+        player_id = init_data["player_id"]
+        max_moves = init_data["max_moves"]
+        moves_left = max_moves
+        
+        if init_data.get("waiting", True):
+            print(Fore.YELLOW + "\nAguardando outro jogador conectar..." + Fore.RESET)
+            while True:
+                data = pickle.loads(await websocket.recv())
+                if data["type"] == "game_start":
+                    break
+                elif data["type"] == "player_left":
+                    print(Fore.RED + "\nO outro jogador desconectou. Encerrando..." + Fore.RESET)
+                    await websocket.close()
+                    return
+
+        print(Fore.GREEN + f"\nVocê é o {player_id}" + Fore.RESET)
+        print("\nSeu tabuleiro inicial:")
+        print_board(init_data["board"])
+        print(Fore.CYAN + f"\nTotal de jogadas permitidas: {max_moves}" + Fore.RESET)
+
+        # Main game loop
         while True:
             try:
-                # Receber o estado do jogo
-                game_state = pickle.loads(await websocket.recv())
-                print(f"Estado do jogo recebido: {game_state}")  # Log de recebimento
+                # Skip input if player has no moves left
+                if moves_left <= 0:
+                    await asyncio.sleep(0.5)  # Small delay to prevent busy waiting
+                    continue
+                    
+                # Get valid move input
+                while True:
+                    move = input("\nDigite seu movimento (ex: A1 B2) ou 'sair': ").strip()
+                    if move.lower() == 'sair':
+                        await websocket.send(pickle.dumps({"type": "quit"}))
+                        await websocket.close()
+                        return
+                    
+                    parts = move.split()
+                    if len(parts) == 2:
+                        formatted_move = f"{parts[0].upper()} {parts[1].upper()}"
+                        if is_valid_move(formatted_move):
+                            break
+                    
+                    print(Fore.RED + "Formato inválido! Use ex: A1 B2 (letras A-F, números 1-6)" + Fore.RESET)
 
-                # Mostrar o estado atual do jogo (tabuleiro, pontuação, etc.)
-                print("Tabuleiro:")
-                print_board(game_state["board"])
-                print(f"Pontuação: {game_state['score']}")
-                print(f"Vez do jogador: {game_state['turn'] % 2 + 1}")  # Alterna entre os jogadores 1 e 2
-                print(f"Movimentos restantes: {game_state['moves_left']}")
+                # Send move
+                await websocket.send(pickle.dumps({
+                    "type": "move",
+                    "move": formatted_move
+                }))
 
-                # Verifica se o jogo acabou
-                if game_state.get("game_over", False):
-                    print("O jogo terminou!")
+                # Process server response
+                data = pickle.loads(await websocket.recv())
+                
+                if data["type"] == "board_update":
+                    moves_left = data["moves_left"]
+                    print(Fore.GREEN + f"\n{data.get('message', 'Movimento válido!')}" + Fore.RESET)
+                    print(Fore.YELLOW + f"Pontuação: {data['score']}" + Fore.RESET)
+                    print(f"Jogadas restantes: {moves_left}")
+                    print_board(data["board"])
+                
+                elif data["type"] == "turn_complete":
+                    moves_left = 0
+                    print(Fore.YELLOW + f"\n{data['message']}" + Fore.RESET)
+                    print(Fore.CYAN + f"Pontuação final: {data['score']}" + Fore.RESET)
+                    print_board(data["board"])
+                
+                elif data["type"] == "waiting":
+                    print(Fore.BLUE + f"\n⌛ {data['message']}" + Fore.RESET)
+                
+                elif data["type"] == "move_error":
+                    print(Fore.RED + f"\nERRO: {data['message']}" + Fore.RESET)
+                    if "Aguardando" in data["message"]:
+                        moves_left = 0
+                
+                elif data["type"] == "game_over":
+                    print(Fore.MAGENTA + "\n--- FIM DE JOGO ---" + Fore.RESET)
+                    print("Placar final:")
+                    for player, score in data["scores"].items():
+                        color = Fore.GREEN if player == data["winner"] else Fore.WHITE
+                        print(color + f"{player}: {score} pontos" + Fore.RESET)
+                    print(Fore.CYAN + f"\nVencedor: {data['winner']}!" + Fore.RESET)
                     break
 
-                # Pedir ao jogador para fazer um movimento
-                move = input("Digite seu movimento (ex: A1 B5): ")
-                print(f"Movimento enviado: {move}")  # Log do movimento enviado
-                await websocket.send(pickle.dumps(move))  # Envia o movimento para o servidor
-
-            except websockets.exceptions.ConnectionClosedError:
-                print("Erro na conexão com o servidor.")  # Log de erro
+            except (websockets.exceptions.ConnectionClosed, ConnectionResetError):
+                print(Fore.RED + "\nConexão com o servidor perdida." + Fore.RESET)
                 break
             except Exception as e:
-                print(f"Ocorreu um erro: {e}")  # Log de erro
+                print(Fore.RED + f"\nErro: {str(e)}" + Fore.RESET)
                 break
 
-# Iniciar o cliente
-asyncio.run(receive_game_state())
+if __name__ == "__main__":
+    try:
+        asyncio.run(play_game())
+    except KeyboardInterrupt:
+        print(Fore.YELLOW + "\nJogo encerrado pelo usuário." + Fore.RESET)
