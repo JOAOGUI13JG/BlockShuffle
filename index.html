@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BlockShuffle - Multiplayer</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #2c3e50;
+            color: white;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .game-container {
+            display: flex;
+            gap: 30px;
+            margin-top: 20px;
+        }
+        
+        .board-container {
+            background-color: #34495e;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+        
+        .board {
+            display: grid;
+            grid-template-columns: repeat(6, 60px);
+            grid-template-rows: repeat(6, 60px);
+            gap: 5px;
+        }
+        
+        .cell {
+            width: 60px;
+            height: 60px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s;
+            user-select: none;
+        }
+        
+        .cell:hover {
+            transform: scale(1.05);
+        }
+        
+        .cell.selected {
+            box-shadow: 0 0 0 3px yellow;
+        }
+        
+        .cell.O { background-color: #e74c3c; }
+        .cell.X { background-color: #2ecc71; }
+        .cell.Y { background-color: #f1c40f; }
+        .cell.Z { background-color: #3498db; }
+        
+        .info-panel {
+            background-color: #34495e;
+            padding: 15px;
+            border-radius: 10px;
+            width: 250px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+        
+        .status {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 5px;
+            text-align: center;
+        }
+        
+        .waiting { background-color: #f39c12; }
+        .playing { background-color: #2ecc71; }
+        .game-over { background-color: #9b59b6; }
+        
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+        
+        button:hover {
+            background-color: #2980b9;
+        }
+        
+        .scores {
+            margin-top: 15px;
+        }
+        
+        .score-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+        }
+        
+        .winner {
+            font-weight: bold;
+            color: #f1c40f;
+        }
+    </style>
+</head>
+<body>
+    <h1>BlockShuffle Multiplayer</h1>
+    
+    <div class="game-container">
+        <div class="board-container">
+            <div class="board" id="board"></div>
+        </div>
+        
+        <div class="info-panel">
+            <h2>Informações do Jogo</h2>
+            <div id="player-info">Jogador: <span id="player-id">-</span></div>
+            <div>Pontuação: <span id="score">0</span></div>
+            <div>Jogadas restantes: <span id="moves-left">0</span>/<span id="max-moves">0</span></div>
+            
+            <div class="scores" id="scores-container">
+                <h3>Placar</h3>
+                <div id="scores-list"></div>
+            </div>
+            
+            <div class="status" id="game-status">Aguardando conexão...</div>
+            
+            <button id="quit-btn">Sair do Jogo</button>
+        </div>
+    </div>
+    
+    <script src="game.js"></script>
+</body>
+</html>
