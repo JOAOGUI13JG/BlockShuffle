@@ -177,13 +177,29 @@ class Game:
     async def handle_move(self, websocket, move_data):
         """Processa movimento válido"""
         player_id = self.players[websocket]["id"]
-        #self.last_move_time[websocket] = asyncio.get_event_loop().time()
+        self.last_move_time[websocket] = asyncio.get_event_loop().time()
 
         # Validação básica do movimento
         try:
             parts = move_data["move"].split()
             if len(parts) != 2:
                 raise ValueError("Formato inválido")
+            
+            # Extrai coordenadas
+            coord1, coord2 = parts
+            row1 = ord(coord1[0].upper()) - ord('A')
+            col1 = int(coord1[1]) - 1
+            row2 = ord(coord2[0].upper()) - ord('A')
+            col2 = int(coord2[1]) - 1
+
+            # Verificação de limites
+            if not all(0 <= x < 6 for x in [row1, col1, row2, col2]):
+                await websocket.send(json.dumps({
+                    "type": "move_error",
+                    "message": "Coordenadas fora dos limites do tabuleiro!"
+                }))
+                return False
+
         except Exception as e:
             await websocket.send(json.dumps({
                 "type": "move_error",
