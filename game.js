@@ -116,19 +116,41 @@ class BlockShuffleGame {
     }
     
     handleBoardUpdate(data) {
-        this.board = data.board;
-        this.scores[this.playerId] = data.score;
-        this.movesLeft = data.moves_left;
-        
-        this.scoreElement.textContent = data.score;
-        this.movesLeftElement.textContent = this.movesLeft;
-        
-        this.renderBoard();
-        this.updateScores();
-        
-        if (data.message) {
-            this.updateStatus(data.message, 'playing');
+        // Remove efeitos de processamento
+        if (this.lastSelection) {
+            this.lastSelection.cell1.classList.remove('processing');
+            this.lastSelection.cell2.classList.remove('processing');
+            
+            // Executa a troca visual SÓ APÓS confirmação
+            this.swapCellsOnScreen(this.lastSelection.cell1, this.lastSelection.cell2);
+            
+            // Aplica efeito visual de sucesso
+            this.lastSelection.cell1.classList.add('valid');
+            this.lastSelection.cell2.classList.add('valid');
+            setTimeout(() => {
+                this.lastSelection.cell1.classList.remove('valid');
+                this.lastSelection.cell2.classList.remove('valid');
+            }, 500);
         }
+
+        // Atualiza o tabuleiro após delay
+        setTimeout(() => {
+            this.board = data.board;
+            this.scores[this.playerId] = data.score;
+            this.movesLeft = data.moves_left;
+            
+            this.scoreElement.textContent = data.score;
+            this.movesLeftElement.textContent = this.movesLeft;
+            
+            this.renderBoard();
+            this.updateScores();
+            
+            if (data.message) {
+                this.updateStatus(data.message, 'playing');
+            }
+            
+            this.lastSelection = null;
+        }, 1000);
     }
     
     handleTurnComplete(data) {
@@ -152,6 +174,19 @@ class BlockShuffleGame {
     
     handleMoveError(data) {
         this.updateStatus(data.message, 'waiting');
+        
+        // Remove efeitos de processamento e mostra erro
+        if (this.lastSelection) {
+            this.lastSelection.cell1.classList.remove('processing');
+            this.lastSelection.cell2.classList.remove('processing');
+            
+            this.lastSelection.cell1.classList.add('invalid');
+            setTimeout(() => {
+                this.lastSelection.cell1.classList.remove('invalid');
+            }, 500);
+            
+            this.lastSelection = null;
+        }
     }
     
     handleWaiting(data) {
@@ -211,33 +246,47 @@ class BlockShuffleGame {
     
     handleCellClick(cell) {
         if (this.movesLeft <= 0) return;
-        
-        const row = parseInt(cell.dataset.row);
-        const col = parseInt(cell.dataset.col);
-        
+
         if (this.selectedCell) {
-            // Verifica se é uma célula adjacente
-            const prevRow = parseInt(this.selectedCell.dataset.row);
-            const prevCol = parseInt(this.selectedCell.dataset.col);
-            
-            const isAdjacent = 
-                (Math.abs(row - prevRow) === 1 && col === prevCol) || 
-                (Math.abs(col - prevCol) === 1 && row === prevRow);
-            
-            if (isAdjacent) {
-                // Faz o movimento
-                const move = `${String.fromCharCode(65 + prevRow)}${prevCol + 1} ${String.fromCharCode(65 + row)}${col + 1}`;
-                this.socket.send(JSON.stringify({ type: "move", move }));
+            if (this.selectedCell !== cell) {
+                // Guarda a seleção atual sem trocar visualmente
+                this.lastSelection = {
+                    cell1: this.selectedCell,
+                    cell2: cell,
+                    move: `${String.fromCharCode(65 + parseInt(this.selectedCell.dataset.row))}${parseInt(this.selectedCell.dataset.col) + 1} ${
+                           String.fromCharCode(65 + parseInt(cell.dataset.row))}${parseInt(cell.dataset.col) + 1}`
+                };
+
+                // Aplica efeito visual de processamento
+                this.selectedCell.classList.add('processing');
+                cell.classList.add('processing');
+                
+                // Envia para o servidor após pequeno delay
+                setTimeout(() => {
+                    this.socket.send(JSON.stringify({ 
+                        type: "move", 
+                        move: this.lastSelection.move 
+                    }));
+                }, 300);
             }
-            
-            // Remove a seleção em qualquer caso
+
             this.selectedCell.classList.remove('selected');
             this.selectedCell = null;
         } else {
-            // Seleciona a célula
             this.selectedCell = cell;
             cell.classList.add('selected');
         }
+    }
+
+    swapCellsOnScreen(cell1, cell2) {
+        const tempText = cell1.textContent;
+        const tempClass = cell1.className.replace(/selected|processing/g, '').trim();
+        
+        cell1.textContent = cell2.textContent;
+        cell1.className = cell2.className.replace(/selected|processing/g, '').trim();
+        
+        cell2.textContent = tempText;
+        cell2.className = tempClass;
     }
 }
 
