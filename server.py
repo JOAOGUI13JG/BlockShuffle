@@ -109,6 +109,12 @@ class Game:
 
     async def handle_move(self, websocket, move_data):
         """Processa movimento válido"""
+        if not self.game_started:
+            await websocket.send(json.dumps({
+                "type": "move_error",
+                "message": "O jogo ainda não começou"
+            }))
+            return False
         player_id = self.players[websocket]["id"]
         self.last_move_time[websocket] = asyncio.get_event_loop().time()
 
@@ -212,7 +218,8 @@ class GameManager:
         player_id = f"player{len(game.players) + 1}"
         game.players[websocket] = {
             "id": player_id,
-            "score": 0
+            "score": 0,
+            "ready": False  # Novo campo para controlar prontidão
         }
         game.boards[player_id] = generate_board()
         game.last_move_time[websocket] = asyncio.get_event_loop().time()
@@ -232,31 +239,42 @@ class GameManager:
                 "waiting": len(game.players) < 2
             }))
 
-            # Inicia jogo quando 2 jogadores conectarem
-            if len(game.players) == 2:
-                game.game_started = True
-                await game.broadcast("game_start")
-                print("Jogo iniciado com ambos jogadores conectados!")
+            # Espera ambos jogadores conectarem
+            while len(game.players) < 2:
+                await asyncio.sleep(0.1)
+
+            # Marca jogador como pronto
+            game.players[websocket]["ready"] = True
+            
+            # Só inicia quando ambos estiverem prontos
+            while not all(p["ready"] for p in game.players.values()):
+                await asyncio.sleep(0.1)
+
+            game.game_started = True
+            await game.broadcast("game_start")
+            print("Jogo iniciado com ambos jogadores conectados!")
 
             # Processa mensagens do jogador
             async for message in websocket:
                 game.last_move_time[websocket] = asyncio.get_event_loop().time()
                 data = json.loads(message)
-                if data["type"] == "move":
+                
+                # Bloqueia movimentos antes do jogo começar
+                if data["type"] == "move" and game.game_started:
                     await game.handle_move(websocket, data)
+                elif data["type"] == "move":
+                    await websocket.send(json.dumps({
+                        "type": "move_error",
+                        "message": "Aguardando outro jogador conectar"
+                    }))
 
         except (websockets.exceptions.ConnectionClosed, ConnectionResetError):
             print(f"{player_id} desconectou abruptamente")
-        except Exception as e:
-            print(f"Erro na conexão: {traceback.format_exc()}")
         finally:
-            try:
-                inactivity_task.cancel()
-                game.handle_disconnect(websocket)
-                if len(game.players) == 0:
-                    self.waiting_game = None
-            except:
-                pass
+            inactivity_task.cancel()
+            game.handle_disconnect(websocket)
+            if len(game.players) == 0:
+                self.waiting_game = None
 
 async def main():
     try:

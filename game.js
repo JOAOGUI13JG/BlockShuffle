@@ -69,9 +69,15 @@ class BlockShuffleGame {
         switch (data.type) {
             case 'init':
                 this.handleInit(data);
+                // Bloqueia a interface se estiver esperando
+                if (data.waiting) {
+                    this.updateStatus('Aguardando outro jogador...', 'waiting');
+                    this.blockInput(true);
+                }
                 break;
             case 'game_start':
                 this.handleGameStart();
+                this.blockInput(false); // Libera a interface
                 break;
             case 'board_update':
                 this.handleBoardUpdate(data);
@@ -91,6 +97,18 @@ class BlockShuffleGame {
             case 'player_left':
                 this.handlePlayerLeft(data);
                 break;
+        }
+    }
+
+    blockInput(blocked) {
+        const cells = document.querySelectorAll('.cell');
+        cells.forEach(cell => {
+            cell.style.pointerEvents = blocked ? 'none' : 'auto';
+            cell.style.opacity = blocked ? '0.5' : '1';
+        });
+        
+        if (blocked) {
+            this.gameStatusElement.textContent = 'Aguardando outro jogador...';
         }
     }
     
