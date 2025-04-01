@@ -66,7 +66,16 @@ def process_move(board: List[List[str]], move: str) -> Dict:
     try:
         # Verificação robusta de formato
         if len(move.split()) != 2:
-            return {"valid": False, "board": board, "points": 0}
+            return {
+                "valid": False, 
+                "board": board, 
+                "points": 0,
+                "steps": [{
+                    "board": board,
+                    "points": 0,
+                    "message": "Formato de movimento inválido"
+                }]
+            }
         
         coord1, coord2 = move.split()
         row1 = ord(coord1[0].upper()) - ord('A')
@@ -76,7 +85,16 @@ def process_move(board: List[List[str]], move: str) -> Dict:
 
         # Verificação de limites
         if not all(0 <= x < 6 for x in [row1, col1, row2, col2]):
-            return {"valid": False, "board": board, "points": 0}
+            return {
+                "valid": False, 
+                "board": board, 
+                "points": 0,
+                "steps": [{
+                    "board": board,
+                    "points": 0,
+                    "message": "Coordenadas fora do tabuleiro"
+                }]
+            }
 
         # Cria cópia segura do tabuleiro
         new_board = [row.copy() for row in board]
@@ -96,23 +114,75 @@ def process_move(board: List[List[str]], move: str) -> Dict:
 
         matches = verify_matches(new_board)
         if not matches:
-            return {"valid": False, "board": board, "points": 0}
+            return {
+                "valid": False, 
+                "board": board, 
+                "points": 0,
+                "steps": [{
+                    "board": board,
+                    "points": 0,
+                    "message": "Nenhuma combinação formada"
+                }]
+            }
 
         # Processamento de matches em cadeia
+        steps = []
+        current_board = [row.copy() for row in board]
+        current_board[row1][col1], current_board[row2][col2] = current_board[row2][col2], current_board[row1][col1]
+        
         total_points = 0
-        while matches:
-            total_points += len(matches) * 100  # Pontuação base
+        while True:
+            matches = find_matches(current_board)
+            if not matches:
+                break
+                
+            # Adiciona o estado ANTES de limpar as peças
+            steps.append({
+                "board": [row.copy() for row in current_board],
+                "points": total_points,
+                "message": "Combinação encontrada!"
+            })
             
-            # Remove matches e aplica gravidade
-            for i, j in matches:
-                new_board[i][j] = ' '
-            apply_gravity(new_board)
-            fill_board(new_board)
+            # Remove as peças combinadas
+            for (i, j) in matches:
+                current_board[i][j] = ' '
             
-            # Verifica novos matches
-            matches = verify_matches(new_board)
+            total_points += calculate_points(matches)
+            
+            # Adiciona o estado APÓS limpar (antes da gravidade)
+            steps.append({
+                "board": [row.copy() for row in current_board],
+                "points": total_points,
+                "message": "Removendo peças..."
+            })
+            
+            apply_gravity(current_board)
+            fill_board(current_board)
+        
+        # Garante que sempre haja steps mesmo sem matches
+        if not steps:
+            steps.append({
+                "board": current_board,
+                "points": 0,
+                "message": "Movimento realizado"
+            })
 
-        return {"valid": True, "board": new_board, "points": total_points}
+        return {
+            "valid": True,
+            "board": current_board,
+            "points": total_points,
+            "steps": steps  # Todas as etapas intermediárias
+        }
 
-    except Exception:
-        return {"valid": False, "board": board, "points": 0}
+    except Exception as e:
+        print(f"Erro no processamento: {str(e)}")
+        return {
+            "valid": False,
+            "board": board,
+            "points": 0,
+            "steps": [{
+                "board": board,
+                "points": 0,
+                "message": "Erro no movimento"
+            }]
+        }

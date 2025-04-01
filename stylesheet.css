@@ -129,3 +129,27 @@ button:hover {
     20%, 60% { transform: translateX(-5px); }
     40%, 80% { transform: translateX(5px); }
 }
+
+/* Estilos para o cabeçalho e logo */
+header {
+    text-align: center;
+    margin-bottom: 20px;
+    padding: 10px 0;
+}
+
+.game-logo {
+    max-width: 300px;
+    height: auto;
+    margin: 0 auto;
+    display: block;
+}
+
+/* Ajuste o título principal */
+h1 {
+    display: none; /* Esconde o título antigo */
+}
+
+/* Ajuste o container do jogo para acomodar a logo */
+.game-container {
+    margin-top: 10px;
+}

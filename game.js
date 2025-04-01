@@ -115,61 +115,86 @@ class BlockShuffleGame {
         this.updateStatus('Jogo iniciado! Faça seu movimento.', 'playing');
     }
     
-    handleBoardUpdate(data) {
-        // Remove efeitos de processamento
-        if (this.lastSelection) {
-            this.lastSelection.cell1.classList.remove('processing');
-            this.lastSelection.cell2.classList.remove('processing');
-            
-            // Executa a troca visual SÓ APÓS confirmação
-            this.swapCellsOnScreen(this.lastSelection.cell1, this.lastSelection.cell2);
-            
-            // Aplica efeito visual de sucesso
-            this.lastSelection.cell1.classList.add('valid');
-            this.lastSelection.cell2.classList.add('valid');
-            setTimeout(() => {
-                this.lastSelection.cell1.classList.remove('valid');
-                this.lastSelection.cell2.classList.remove('valid');
-            }, 500);
-        }
-
-        // Atualiza o tabuleiro após delay
-        setTimeout(() => {
+    async handleBoardUpdate(data) {
+        try {
+            // Atualiza estado imediatamente
             this.board = data.board;
             this.scores[this.playerId] = data.score;
             this.movesLeft = data.moves_left;
+    
+            // Renderiza o tabuleiro
+            this.renderBoard();
             
+            // Atualiza UI
             this.scoreElement.textContent = data.score;
             this.movesLeftElement.textContent = this.movesLeft;
-            
-            this.renderBoard();
             this.updateScores();
-            
-            if (data.message) {
-                this.updateStatus(data.message, 'playing');
-            }
-            
-            this.lastSelection = null;
-        }, 1000);
-    }
     
+            // Mostra mensagem de status
+            if (data.message) {
+                const statusType = data.message.includes("Removendo") ? 'waiting' : 'playing';
+                this.updateStatus(data.message, statusType);
+            }
+    
+            // Se foi a última jogada, prepara para o fim do jogo
+            if (this.movesLeft <= 0) {
+                // Adiciona timeout de segurança
+                setTimeout(() => {
+                    if (!this.gameEnded) {
+                        this.updateStatus("Processando resultado final...", 'waiting');
+                    }
+                }, 5000);
+            }
+        } catch (e) {
+            console.error("Erro ao processar atualização:", e);
+        }
+    }
+
     handleTurnComplete(data) {
-        this.board = data.board;
-        this.scores[this.playerId] = data.score;
-        this.movesLeft = 0;
+        this.handleBoardUpdate(data);  // Reusa a lógica de atualização
         
-        this.scoreElement.textContent = data.score;
-        this.movesLeftElement.textContent = this.movesLeft;
+        // Força verificação de estado final
+        if (data.moves_left <= 0) {
+            this.updateStatus("Seu turno terminou! Aguardando resultado final...", 'waiting');
+            
+            // Timeout de segurança
+            setTimeout(() => {
+                if (!this.gameEnded) {
+                    this.updateStatus("Preparando placar final...", 'game-over');
+                    // Simula um game_over se o servidor não responder
+                    this.handleGameOver({
+                        scores: this.scores,
+                        winner: Object.keys(this.scores)[0] // Fallback
+                    });
+                }
+            }, 10000);
+        }
+    }
+
+    
+    // Mantenha o renderBoard simples:
+    renderBoard() {
+        this.boardElement.innerHTML = '';
         
-        this.renderBoard();
-        this.updateScores();
-        this.updateStatus(data.message, 'waiting');
+        for (let i = 0; i < 6; i++) {
+            for (let j = 0; j < 6; j++) {
+                const cell = document.createElement('div');
+                cell.className = `cell ${this.board[i][j]}`;
+                cell.textContent = this.board[i][j];
+                cell.dataset.row = i;
+                cell.dataset.col = j;
+                cell.addEventListener('click', () => this.handleCellClick(cell));
+                this.boardElement.appendChild(cell);
+            }
+        }
     }
     
     handleGameOver(data) {
-        this.scores = data.scores;
-        this.updateScores(data.winner);
-        this.updateStatus(`Fim de jogo! Vencedor: ${data.winner}`, 'game-over');
+        setTimeout(() => {
+            this.scores = data.scores;
+            this.updateScores(data.winner);
+            this.updateStatus(`Fim de jogo! Vencedor: ${data.winner}`, 'game-over');
+        }, 1005);
     }
     
     handleMoveError(data) {
