@@ -3,7 +3,7 @@ from typing import List, Tuple, Dict
 
 def generate_board() -> List[List[str]]:
     """Gera um tabuleiro 6x6 sem combinações iniciais"""
-    symbols = ['O', 'X', 'Y', 'Z']
+    symbols = ['R', 'G', 'Y', 'B']
     while True:
         board = [[random.choice(symbols) for _ in range(6)] for _ in range(6)]
         if not find_matches(board):
@@ -55,7 +55,7 @@ def apply_gravity(board: List[List[str]]):
 
 def fill_board(board: List[List[str]]):
     """Preenche espaços vazios com novas peças"""
-    symbols = ['O', 'X', 'Y', 'Z']
+    symbols = ['R', 'G', 'Y', 'B']
     for i in range(6):
         for j in range(6):
             if board[i][j] == ' ':

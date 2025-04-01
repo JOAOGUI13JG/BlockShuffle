@@ -51,10 +51,10 @@ body {
     box-shadow: 0 0 0 3px yellow;
 }
 
-.cell.O { background-color: #e74c3c; }
-.cell.X { background-color: #2ecc71; }
+.cell.R { background-color: #e74c3c; }
+.cell.G { background-color: #2ecc71; }
 .cell.Y { background-color: #f1c40f; }
-.cell.Z { background-color: #3498db; }
+.cell.B { background-color: #3498db; }
 
 .info-panel {
     background-color: #34495e;

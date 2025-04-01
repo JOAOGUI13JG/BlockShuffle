@@ -69,7 +69,6 @@ class BlockShuffleGame {
         switch (data.type) {
             case 'init':
                 this.handleInit(data);
-                // Bloqueia a interface se estiver esperando
                 if (data.waiting) {
                     this.updateStatus('Aguardando outro jogador...', 'waiting');
                     this.blockInput(true);
@@ -77,7 +76,7 @@ class BlockShuffleGame {
                 break;
             case 'game_start':
                 this.handleGameStart();
-                this.blockInput(false); // Libera a interface
+                this.blockInput(false);
                 break;
             case 'board_update':
                 this.handleBoardUpdate(data);
@@ -135,28 +134,22 @@ class BlockShuffleGame {
     
     async handleBoardUpdate(data) {
         try {
-            // Atualiza estado imediatamente
             this.board = data.board;
             this.scores[this.playerId] = data.score;
             this.movesLeft = data.moves_left;
     
-            // Renderiza o tabuleiro
             this.renderBoard();
             
-            // Atualiza UI
             this.scoreElement.textContent = data.score;
             this.movesLeftElement.textContent = this.movesLeft;
             this.updateScores();
     
-            // Mostra mensagem de status
             if (data.message) {
                 const statusType = data.message.includes("Removendo") ? 'waiting' : 'playing';
                 this.updateStatus(data.message, statusType);
             }
     
-            // Se foi a última jogada, prepara para o fim do jogo
             if (this.movesLeft <= 0) {
-                // Adiciona timeout de segurança
                 setTimeout(() => {
                     if (!this.gameEnded) {
                         this.updateStatus("Processando resultado final...", 'waiting');
@@ -169,28 +162,23 @@ class BlockShuffleGame {
     }
 
     handleTurnComplete(data) {
-        this.handleBoardUpdate(data);  // Reusa a lógica de atualização
+        this.handleBoardUpdate(data);
         
-        // Força verificação de estado final
         if (data.moves_left <= 0) {
             this.updateStatus("Seu turno terminou! Aguardando resultado final...", 'waiting');
             
-            // Timeout de segurança
             setTimeout(() => {
                 if (!this.gameEnded) {
                     this.updateStatus("Preparando placar final...", 'game-over');
-                    // Simula um game_over se o servidor não responder
                     this.handleGameOver({
                         scores: this.scores,
-                        winner: Object.keys(this.scores)[0] // Fallback
+                        winner: Object.keys(this.scores)[0]
                     });
                 }
             }, 10000);
         }
     }
 
-    
-    // Mantenha o renderBoard simples:
     renderBoard() {
         this.boardElement.innerHTML = '';
         
@@ -218,7 +206,6 @@ class BlockShuffleGame {
     handleMoveError(data) {
         this.updateStatus(data.message, 'waiting');
         
-        // Remove efeitos de processamento e mostra erro
         if (this.lastSelection) {
             this.lastSelection.cell1.classList.remove('processing');
             this.lastSelection.cell2.classList.remove('processing');
@@ -292,7 +279,6 @@ class BlockShuffleGame {
 
         if (this.selectedCell) {
             if (this.selectedCell !== cell) {
-                // Guarda a seleção atual sem trocar visualmente
                 this.lastSelection = {
                     cell1: this.selectedCell,
                     cell2: cell,
@@ -300,11 +286,9 @@ class BlockShuffleGame {
                            String.fromCharCode(65 + parseInt(cell.dataset.row))}${parseInt(cell.dataset.col) + 1}`
                 };
 
-                // Aplica efeito visual de processamento
                 this.selectedCell.classList.add('processing');
                 cell.classList.add('processing');
                 
-                // Envia para o servidor após pequeno delay
                 setTimeout(() => {
                     this.socket.send(JSON.stringify({ 
                         type: "move", 
@@ -333,7 +317,6 @@ class BlockShuffleGame {
     }
 }
 
-// Inicia o jogo quando a página carregar
 window.onload = () => {
     new BlockShuffleGame();
 };

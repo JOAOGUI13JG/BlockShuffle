@@ -96,7 +96,6 @@ class Game:
             del self.players[websocket]
             del self.last_move_time[websocket]
             
-            # Se restar apenas 1 jogador, encerra o jogo
             if len(self.players) == 1:
                 remaining_player = next(iter(self.players.values()))["id"]
                 asyncio.create_task(self.broadcast("game_over", {
@@ -104,7 +103,6 @@ class Game:
                     "scores": {remaining_player: self.scores.get(remaining_player, 0)}
                 }))
             else:
-                # Verifica se o jogo pode terminar normalmente
                 asyncio.create_task(self.check_game_completion())
 
     async def handle_move(self, websocket, move_data):
@@ -150,14 +148,13 @@ class Game:
                         "moves_left": self.max_moves - self.moves_count[player_id],
                         "message": step["message"]
                     }))
-                    await asyncio.sleep(1.0)  # Pausa entre etapas
+                    await asyncio.sleep(1.0)
                 
-                # Atualiza estado final
+                
                 self.boards[player_id] = result["board"]
                 self.scores[player_id] += result["points"]
                 self.moves_count[player_id] += 1
                 
-                # Garante envio da mensagem final mesmo se não houver steps
                 final_message = {
                     "type": "turn_complete",
                     "board": self.boards[player_id],
@@ -168,7 +165,6 @@ class Game:
                 }
                 await websocket.send(json.dumps(final_message))
                 
-                # Verifica imediatamente se o jogo terminou
                 await self.check_game_completion()
     
         except Exception as e:
@@ -219,7 +215,7 @@ class GameManager:
         game.players[websocket] = {
             "id": player_id,
             "score": 0,
-            "ready": False  # Novo campo para controlar prontidão
+            "ready": False
         }
         game.boards[player_id] = generate_board()
         game.last_move_time[websocket] = asyncio.get_event_loop().time()
@@ -243,10 +239,8 @@ class GameManager:
             while len(game.players) < 2:
                 await asyncio.sleep(0.1)
 
-            # Marca jogador como pronto
             game.players[websocket]["ready"] = True
             
-            # Só inicia quando ambos estiverem prontos
             while not all(p["ready"] for p in game.players.values()):
                 await asyncio.sleep(0.1)
 
@@ -285,7 +279,6 @@ async def main():
         server = await websockets.serve(game_manager.handle_connection, "0.0.0.0", 8765)
         print("Servidor rodando na porta 8765 - Aguardando jogadores...")
         
-        # Mantém o servidor rodando até Ctrl+C
         await asyncio.get_event_loop().create_future()
         
     except asyncio.CancelledError:
