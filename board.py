@@ -100,7 +100,6 @@ def process_move(board: List[List[str]], move: str) -> Dict:
         new_board = [row.copy() for row in board]
         new_board[row1][col1], new_board[row2][col2] = new_board[row2][col2], new_board[row1][col1]
 
-        # Sistema de verificação otimizado
         def verify_matches(b):
             matches = set()
             # Verificação horizontal e vertical simultânea
@@ -136,7 +135,6 @@ def process_move(board: List[List[str]], move: str) -> Dict:
             if not matches:
                 break
                 
-            # Adiciona o estado ANTES de limpar as peças
             steps.append({
                 "board": [row.copy() for row in current_board],
                 "points": total_points,
@@ -149,7 +147,6 @@ def process_move(board: List[List[str]], move: str) -> Dict:
             
             total_points += calculate_points(matches)
             
-            # Adiciona o estado APÓS limpar (antes da gravidade)
             steps.append({
                 "board": [row.copy() for row in current_board],
                 "points": total_points,
@@ -171,7 +168,7 @@ def process_move(board: List[List[str]], move: str) -> Dict:
             "valid": True,
             "board": current_board,
             "points": total_points,
-            "steps": steps  # Todas as etapas intermediárias
+            "steps": steps
         }
 
     except Exception as e:
