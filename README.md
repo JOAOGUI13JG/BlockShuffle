@@ -10,13 +10,13 @@ Um jogo de combinação de blocos multiplayer em tempo real usando WebSocket, Py
 🌟 # Visão Geral
 Block Shuffle é um jogo de puzzle multiplayer onde jogadores combinam blocos coloridos em tempo real usando WebSocket. Esta versão utiliza Apache como proxy reverso em uma instância AWS EC2.
 
-📦 # Tecnologias Principais
-Componente	Tecnologia
-Backend	Python + WebSocket (websockets)
-Frontend	Terminal (cliente Python)
-Servidor Web	Apache HTTP Server
-Cloud	AWS EC2 (Ubuntu)
-Protocolo	WebSocket (ws://)
+📦## Tecnologias Principais
+  Componente	Tecnologia
+  Backend	Python + WebSocket (websockets)
+  Frontend	Terminal (cliente Python)
+  Servidor Web	Apache HTTP Server
+  Cloud	AWS EC2 (Ubuntu)
+  Protocolo	WebSocket (ws://)
 🚀 Configuração Rápida na AWS
 1. Pré-requisitos
 Instância EC2 com Ubuntu (t2.micro)
